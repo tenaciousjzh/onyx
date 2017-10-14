@@ -33,6 +33,8 @@
                                com.cemerick/austin]]
                  [prismatic/schema "1.1.6"]
                  [com.amazonaws/aws-java-sdk-s3 "1.11.190"]
+                 [com.google.auth/google-auth-library-oauth2-http "0.7.1"]
+                 [com.google.cloud/google-cloud-storage "1.7.0"]
                  [clj-tuple "0.2.2"]
                  [clj-fuzzy "0.3.1" :exclusions [org.clojure/clojurescript]]
                  [org.deephacks.lmdbjni/lmdbjni "0.4.6"]
