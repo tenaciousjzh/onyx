@@ -51,4 +51,17 @@
 (defn- scopes-empty? [peer-config]
   (empty? (:onyx.peer/storage.gcs.auth.config.scopes peer-config)))
 
-#_(defmulti onyx.checkpoint/storage :gcs [peer-config monitoring])
+(defrecord CheckpointManager [^Storage storage monitoring bucket storage-class location])
+
+(defmethod onyx.checkpoint/storage :gcs [peer-config monitoring]
+  (let [storage (new-client peer-config)
+        bucket (or (:onyx.peer/storage.gcs.bucket peer-config)
+                   (throw (Exception. ":onyx.peer/storage.gcs.bucket must be set in order to manage checkpoints on Google Cloud Storage.")))
+        storage-class (or (:onyx.peer/storage.gcs.storage-class peer-config)
+                          (throw (Exception. ":onyx.peer/storage.gcs.storage-class must be set in order to manage checkpoints on Google Cloud Storage.")))
+        location (or (:onyx.peer/storage.gcs.location peer-config)
+                     (throw (Exception. ":onyx.peer/storage.gcs.location must be set in order to manager checkpoints on Google Cloud Storage")))]
+    (->CheckpointManager storage monitoring bucket storage-class location)))
+
+(defmethod onyx.checkpoint/write-checkpoint onyx.storage.gcs.CheckpointManager
+  )
