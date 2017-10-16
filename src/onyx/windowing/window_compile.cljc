@@ -40,16 +40,22 @@
     #?(:clj (when refinement-calls (validation/validate-refinement-calls refinement-calls)))
     #?(:clj (validation/validate-trigger-calls trigger-calls))
     (let [f-init-state (:trigger/init-state trigger-calls)
-          f-init-locals (:trigger/init-locals trigger-calls)
           sync-fn (if sync (u/kw->fn sync))
           emit-fn (if emit (u/kw->fn emit))
-          locals (f-init-locals trigger)]
+          locals (if-let [f-init-locals (:trigger/init-locals trigger-calls)]
+                   (f-init-locals trigger))
+          state-context-trigger? (or (empty? state-context) (boolean (some #{:trigger-state} state-context)))
+          state-context-window? (boolean (some #{:window-state} state-context))]
+      (when (and (not f-init-state)
+                 (not state-context-window?))
+        (throw (ex-info "Trigger calls for this trigger does not include a :trigger/init-state fn, and thus must use `:trigger/state-context [:window-state]`" 
+                        trigger)))
       (-> trigger
           (filter-ns-key-map "trigger")
           (into locals)
           (assoc :trigger trigger)
-          (assoc :state-context-window? (boolean (some #{:window-state} state-context)))
-          (assoc :state-context-trigger? (or (empty? state-context) (boolean (some #{:trigger-state} state-context))))
+          (assoc :state-context-window? state-context-window?)
+          (assoc :state-context-trigger? state-context-trigger?)
           (assoc :pre-evictor pre-evictor)
           (assoc :post-evictor post-evictor)
           (assoc :idx (or (get indices [id window-id]) (throw (ex-info "Could not find state index for window id." {}))))
@@ -90,6 +96,7 @@
       :triggers triggers
       :emitted (atom [])
       :window window
+      :grouped? (g/grouped-task? task-map)
       :incremental? (or (empty? storage-strategy) (boolean (some #{:incremental} storage-strategy)))
       :store-extents? (boolean (some #{:extents} storage-strategy))
       :ordered-log? (boolean (some #{:ordered-log} storage-strategy))
