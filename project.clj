@@ -13,8 +13,8 @@
                              :sign-releases false}}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.3.443"]
-                 [org.apache.curator/curator-framework "2.9.1"]
-                 [org.apache.curator/curator-test "2.9.1"]
+                 [org.apache.curator/curator-framework "2.9.1" :exclusions [com.google.guava/guava]]
+                 [org.apache.curator/curator-test "2.9.1" :exclusions [com.google.guava/guava]]
                  [org.apache.zookeeper/zookeeper "3.4.10" :exclusions [org.slf4j/slf4j-log4j12]]
                  [org.slf4j/slf4j-api "1.7.12"]
                  [org.slf4j/slf4j-nop "1.7.12"]
@@ -32,8 +32,8 @@
                                com.cemerick/austin]]
                  [prismatic/schema "1.1.6"]
                  [com.amazonaws/aws-java-sdk-s3 "1.11.190"]
-                 [com.google.auth/google-auth-library-oauth2-http "0.7.1"]
-                 [com.google.cloud/google-cloud-storage "1.7.0"]
+                 [com.google.auth/google-auth-library-oauth2-http "0.7.1" :exclusions [com.google.guava/guava]]
+                 [com.google.cloud/google-cloud-storage "1.7.0" ]
 
                  [primitive-math "0.1.6"]
                  [clj-tuple "0.2.2"]

@@ -706,9 +706,9 @@
    (s/optional-key :onyx.peer/storage.gcs.location) (s/enum
                                                      ;REGIONAL
                                                      "US-CENTRAL1"
-                                                     "US_EAST1"
-                                                     "US_EAST4"
-                                                     "US_WEST1"
+                                                     "US-EAST1"
+                                                     "US-EAST4"
+                                                     "US-WEST1"
                                                      "SOUTHAMERICA-EAST1"
                                                      "EUROPE-WEST1"
                                                      "EUROPE-WEST2"
@@ -721,6 +721,7 @@
                                                      "ASIA"
                                                      "US"
                                                      "EU")
+   (s/optional-key :onyx.peer/storage.gcs.project-id) s/Str
    (s/optional-key :onyx.peer/publisher-liveness-timeout-ms) PosInt
    (s/optional-key :onyx.peer/coordinator-max-sleep-ms) PosInt
    (s/optional-key :onyx.peer/coordinator-barrier-period-ms) PosInt

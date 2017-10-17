@@ -1333,12 +1333,19 @@ may be added by the user as the context is associated to throughout the task pip
              :added "0.11.0"}
 
             :onyx.peer/storage.gcs.location
-            {:doc "The Google Cloud [Location](https://cloud.google.com/storage/docs/bucket-locations) for the `:onyx.peer/storage.gcs.bucket` value provided. If this bucket has not bee ncreated yet, it will be created with the location provided."
+            {:doc "The Google Cloud [Location](https://cloud.google.com/storage/docs/bucket-locations) for the `:onyx.peer/storage.gcs.bucket` value provided. If this bucket has not been created yet, it will be created with the location provided."
              :type :string
-             :choices ["US-CENTRAL1" "US_EAST1" "US_EAST4" "US_WEST1" "SOUTHAMERICA-EAST1" "EUROPE-WEST1" "EUROPE-WEST2" "EUROPE-WEST3" "ASIA-EAST1" "ASIA-NORTHEAST1" "ASIA-SOUTHEAST1" "AUSTRALIA-SOUTHEAST1" "ASIA" "US" "EU"]
+             :choices ["US-CENTRAL1" "US-EAST1" "US-EAST4" "US-WEST1" "SOUTHAMERICA-EAST1" "EUROPE-WEST1" "EUROPE-WEST2" "EUROPE-WEST3" "ASIA-EAST1" "ASIA-NORTHEAST1" "ASIA-SOUTHEAST1" "AUSTRALIA-SOUTHEAST1" "ASIA" "US" "EU"]
              :default :none
              :added "0.11.0"}
 
+            :onyx.peer/storage.gcs.project-id
+            {:doc "The Google Cloud Platform Project ID this will interact with. This field is the 'project_id' fields from the JSON Key file."
+             :type :string
+             :optional? true
+             :required-when ["`:onyx.peer/storage.gcs.auth-type` is :config or :path"]
+             :added "0.11.0"
+             }
             :zookeeper/address
             {:doc "The addresses of the ZooKeeper servers to use for coordination e.g. 192.168.1.1:2181,192.168.1.2:2181"
              :type :string
@@ -2024,6 +2031,19 @@ may be added by the user as the context is associated to throughout the task pip
     :onyx.peer/storage.s3.encryption
     :onyx.peer/storage.s3.multipart-copy-part-size
     :onyx.peer/storage.s3.multipart-copy-threshold
+    :onyx.peer/storage.s3.endpoint
+    :onyx.peer/storage.s3.multipart-copy-threshold
+    :onyx.peer/storage.gcs.auth-type
+    :onyx.peer/storage.gcs.auth.path.credentials-path
+    :onyx.peer/storage.gcs.auth.config.client-id
+    :onyx.peer/storage.gcs.auth.config.client-email
+    :onyx.peer/storage.gcs.auth.config.private-key
+    :onyx.peer/storage.gcs.auth.config.private-key-id
+    :onyx.peer/storage.gcs.auth.config.scopes
+    :onyx.peer/storage.gcs.bucket
+    :onyx.peer/storage.gcs.storage-class
+    :onyx.peer/storage.gcs.location
+    :onyx.peer/storage.gcs.project-id
     :onyx.peer/retry-start-interval
     :onyx.peer/join-failure-back-off
     :onyx.peer/drained-back-off

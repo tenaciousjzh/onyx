@@ -5,7 +5,8 @@
             [onyx.static.util :refer [ms->ns ns->ms]]
             [taoensso.timbre :refer [info  error  warn  trace  fatal  debug
                                      infof errorf warnf tracef fatalf debugf] :as timbre]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.string :as st])
   (:import [com.google.api.client.googleapis.auth.oauth2 GoogleCredential]
            [com.google.cloud.storage
             Storage StorageOptions StorageClass
@@ -15,9 +16,12 @@
             Storage$BucketField
             Storage$BlobGetOption
             Storage$BlobField
-            StorageException ]
+            StorageException
+            StorageOptions$Builder
+            Storage$BucketTargetOption
+            Bucket$BucketSourceOption]
            [com.google.auth.oauth2 ServiceAccountCredentials]
-           [java.io FileInputStream]
+           [java.io FileInputStream InputStream]
            [java.nio ByteBuffer]
            [java.util.concurrent.atomic AtomicLong]
            [java.util.concurrent.locks LockSupport]))
@@ -30,28 +34,40 @@
         for detailed descriptions on the configuration keys needed.
   Returns: a com.google.cloud.storage.Storage service client."
   (case (arg-or-default :onyx.peer/storage.gcs.auth-type peer-config)
-    :path (let [path (or (:onyx.peer/storage.gcs.auth.path.credentials-path peer-config)
+    :path (let [_ (infof "Authenticating with JSON Key file located at: %s"
+                         (:onyx.peer/storage.gcs.auth.path.credentials-path peer-config))
+                path (or (:onyx.peer/storage.gcs.auth.path.credentials-path peer-config)
                          (throw (Exception. ":onyx.peer/storage.gcs.auth.path.credentials-path must be set when using :onyx.peer/storage.gcs.auth-type of :path")))
                 _ (if-not (.exists (io/file path))
-                    (throw (Exception. ":onyx.peer/storage.gcs.auth.path.credentials-path is set but the path could not be found. If this is running in a container; has the path been mountted as a volume?")))
+                    (throw (Exception. ":onyx.peer/storage.gcs.auth.path.credentials-path is set but the path could not be found. If this is running in a container; has the path been mounted as a volume?")))
+                project-id (:onyx.peer/storage.gcs.project-id peer-config)
+                _ (if (st/blank? project-id)
+                    (throw (Exception. ":onyx.peer/storage.gcs.project-id must be set to continue.")))
                 credentials (ServiceAccountCredentials/fromStream
-                             (FileInputStream. path))
-                storage (-> (StorageOptions/newBuilder)
+                             ^InputStream (FileInputStream. path))
+                builder ^StorageOptions$Builder (StorageOptions/newBuilder)
+                storage (-> builder
                             (.setCredentials credentials)
+                            (.setProjectId project-id)
                             (.build)
                             (.getService))]
             storage)
     :config (let [client-id (or (:onyx.peer/storage.gcs.auth.config.client-id peer-config)
                                 (throw (Exception. ":onyx.peer/storage.gcs.auth.config.client-id must be set when using :onyx.peer/storage.gcs.auth-type of :config")))
+                  _ (infof "Client ID: %s" client-id)
                   client-email (or (:onyx.peer/storage.gcs.auth.config.client-email peer-config)
                                    (throw (Exception. ":onyx.peer/storage.gcs.auth.config.client-email must be set when using :onyx.peer/storage.gcs.auth-type of :config")))
+                  _ (infof "Client Email: %s" client-email)
                   private-key (or (:onyx.peer/storage.gcs.auth.config.private-key peer-config)
                                   (throw (Exception. ":onyx.peer/storage.gcs.auth.config.private-key must be set when using :onyx.peer/storage.gcs.auth-type of :config")))
+                  _ (infof "Private Key: %s" private-key)
                   private-key-id (or (:onyx.peer/storage.gcs.auth.config.private-key-id peer-config)
                                      (throw (Exception. ":onyx.peer/storage.gcs.auth.config.private-key-id must be set when using :onyx.peer/storage.gcs.auth-type of :config")))
+                  _ (infof "Private Key ID: %s" private-key-id)
                   _ (if (scopes-empty? peer-config)
-                      (warn ":onyx.pexber/storage.gcs.auth.config.scopes not supplied. Defaulting to [\"https://www.googleapis.com/auth/devstorage.read_write\"]"))
+                      (warn ":onyx.peer/storage.gcs.auth.config.scopes not supplied. Defaulting to [\"https://www.googleapis.com/auth/devstorage.read_write\"]"))
                   scopes (arg-or-default :onyx.peer/storage.gcs.auth.config.scopes peer-config)
+                  _ (infof "Scopes: %s" scopes)
                   credentials (ServiceAccountCredentials/fromPkcs8
                                client-id client-email
                                private-key private-key-id
@@ -65,26 +81,11 @@
 (defn- scopes-empty? [peer-config]
   (empty? (:onyx.peer/storage.gcs.auth.config.scopes peer-config)))
 
-;;CheckpointManager stores the service API client to manage buckets and blobs in Google Cloud Storage 
-(defrecord CheckpointManager [id ^Storage storage monitoring bucket storage-class location transfers timeout-ns])
+(defn- get-bucket [storage bucket-name]
+  (.get storage bucket-name (into-array [(Storage$BucketGetOption/fields (into-array [Storage$BucketField/NAME]))])))
 
-(defmethod onyx.checkpoint/storage :gcs [peer-config monitoring]
-  "Set up the state needed to reuse the Storage client for interaction with the Google Cloud Storage
-   Service.
-   Args:
-   peer-config - Map containing the key/value pairs needed for managing the bucket that is used for checkpoints. Namely: `:onyx.peer/storage.gcs.bucket`, `:onyx.peer/storage.gcs.storage-class`, and `:onyx.peer/gcs.location`
-   monitoring - Handle to the monitoring for reporting metrics on checkpoints.
-   Returns: An `onyx.storage.gcs.CheckpointManager`"
-  (let [id (java.util.UUID/randomUUID)
-        storage (new-client peer-config)
-        timeout-ns (ms->ns (arg-or-default :onyx.peer/storage.timeout peer-config))
-        bucket (or (:onyx.peer/storage.gcs.bucket peer-config)
-                   (throw (Exception. ":onyx.peer/storage.gcs.bucket must be set in order to manage checkpoints on Google Cloud Storage.")))
-        storage-class (or (:onyx.peer/storage.gcs.storage-class peer-config)
-                          (throw (Exception. ":onyx.peer/storage.gcs.storage-class must be set in order to manage checkpoints on Google Cloud Storage.")))
-        location (or (:onyx.peer/storage.gcs.location peer-config)
-                     (throw (Exception. ":onyx.peer/storage.gcs.location must be set in order to manager checkpoints on Google Cloud Storage")))]
-    (->CheckpointManager id storage monitoring bucket storage-class location (atom []) timeout-ns)))
+(defn- get-blob [bucket-svc blob-name]
+  (.get bucket-svc blob-name (into-array [(Storage$BlobGetOption/fields (into-array [Storage$BlobField/NAME]))])))
 
 (defn- checkpoint-task-key [tenancy-id job-id replica-version epoch task-id slot-id checkpoint-type]
   (let [prefix-hash (mod (hash [tenancy-id job-id replica-version epoch task-id slot-id]) 100000)]
@@ -103,28 +104,69 @@
         (= "STANDARD" s) StorageClass/STANDARD
         :else StorageClass/REGIONAL))
 
-(defn upload [^Storage storage ^String bucket ^String location ^String storage-class
-               ^String key ^bytes serialized ^String content-type]
-  ;;Note: Google Cloud Storage encrypts all data at rest by default.
-  (let [size (alength serialized)
-        ^Bucket b (.get storage bucket (Storage$BucketGetOption/fields Storage$BucketField/NAME))
+;;CheckpointManager stores the service API client to manage buckets and blobs in Google Cloud Storage 
+(defrecord CheckpointManager [id ^Storage storage monitoring ^Bucket bucket storage-class location transfers timeout-ns])
+
+(defmethod onyx.checkpoint/storage :gcs [peer-config monitoring]
+  "Set up the state needed to reuse the Storage client for interaction with the Google Cloud Storage
+   Service.
+   Args:
+   peer-config - Map containing the key/value pairs needed for managing the bucket that is used for checkpoints. Namely: `:onyx.peer/storage.gcs.bucket`, `:onyx.peer/storage.gcs.storage-class`, and `:onyx.peer/gcs.location`
+   monitoring - Handle to the monitoring for reporting metrics on checkpoints.
+   Returns: An `onyx.storage.gcs.CheckpointManager`"
+  (let [id (java.util.UUID/randomUUID)
+        storage (new-client peer-config)
+        timeout-ns (ms->ns (arg-or-default :onyx.peer/storage.timeout peer-config))
+        bucket-name (or (:onyx.peer/storage.gcs.bucket peer-config)
+                        (throw (Exception. ":onyx.peer/storage.gcs.bucket must be set in order to manage checkpoints on Google Cloud Storage.")))
+        storage-class (or (:onyx.peer/storage.gcs.storage-class peer-config)
+                          (throw (Exception. ":onyx.peer/storage.gcs.storage-class must be set in order to manage checkpoints on Google Cloud Storage.")))
+        location (or (:onyx.peer/storage.gcs.location peer-config)
+                     (throw (Exception. ":onyx.peer/storage.gcs.location must be set in order to manager checkpoints on Google Cloud Storage")))
+        ^Bucket bucket (get-bucket storage bucket-name)
+        _ (infof "Bucket from GCS: %s" bucket)
         ;;If service account used in the credentials or JSON Key file does not have proper permissions
         ;;this could throw an exception.
-        b (if-not (.exists b)
-            (.create storage (-> (BucketInfo/newBuilder bucket)
-                                 (.setLocation location)
-                                 (.setStorageClass (str->storage-class storage-class))
-                                 (.build)))
-            b)
-        blob-id (BlobId/of (.getName b) key)
+        bucket (if (or (nil? bucket)
+                       (not (.exists bucket (make-array com.google.cloud.storage.Bucket$BucketSourceOption 0))))
+                 (try (.create storage
+                               (-> (BucketInfo/newBuilder bucket-name)
+                                   (.setLocation location)
+                                   (.setStorageClass (str->storage-class storage-class))
+                                   (.build))
+                               (make-array com.google.cloud.storage.Storage$BucketTargetOption 0))
+                      (catch StorageException ex
+                        ;;409 means another thread created the bucket at the same time as the one executing this
+                        (if (= 409 (.getCode ex))
+                          (do
+                            (info "Another thread already created the bucket, retrieving from GCS..")
+                            (get-bucket storage bucket-name))
+                     nil)))
+                 bucket)
+        _ (infof "Bucket Info: %s" bucket)]
+    (->CheckpointManager id storage monitoring bucket storage-class location (atom []) timeout-ns)))
+
+(defn upload [^Storage storage ^Bucket bucket ^String location ^String storage-class
+              ^String key ^bytes serialized ^String content-type]
+  (infof "Uploading to bucket: %s, location: %s, storage-class: %s, key: %s, serialized: %s, content-type: %s"
+         bucket location storage-class key serialized content-type)
+  ;;Note: Google Cloud Storage encrypts all data at rest by default.
+  (let [size (alength serialized)
+        _ (infof "Bucket from GCS: %s" bucket)
+        ;;If service account used in the credentials or JSON Key file does not have proper permissions
+        ;;this could throw an exception.
+        blob-id (BlobId/of (.getName bucket) key)
         blob-info (-> (BlobInfo/newBuilder blob-id)
                       (.setContentType content-type)
                       (.build))]
     (future
-      (with-open [write-channel (.writer storage blob-info)]
-        (try (.write write-channel (ByteBuffer/wrap serialized 0 size))
-             (catch Exception ex
-               (throw (Exception. "Unable to save checkpoint to Google Cloud Storage!" ex))))))))
+      (try
+        (infof "Uploading %s bytes to create checkpoint blob on GCS with blob-info: %s" size blob-info)
+        (.create storage blob-info serialized (make-array com.google.cloud.storage.Storage$BlobTargetOption 0))
+        (infof "Finished uploading checkpoint: %s" blob-info)
+        (catch Exception ex
+          (error "Unable to save checkpoint to Google Cloud Storage!" ex)
+          (throw (Exception. "Unable to save checkpoint to Google Cloud Storage!" ex)))))))
 
 ;;Writes out the checkpoint as a com.google.cloud.storage.Blob in the configured com.google.cloud.storage.Bucket.
 ;;Args:
@@ -195,7 +237,7 @@
 ;;Returns: nil valued transfers atom managed by the CheckpointManager
 (defmethod onyx.checkpoint/cancel! onyx.storage.gcs.CheckpointManager 
   [{:keys [transfers]}]
-  (run! #((future-cancel (:upload %))) @transfers)
+  (run! #(future-cancel (:upload %)) @transfers)
   (reset! transfers nil))
 
 
@@ -209,11 +251,12 @@
 
 (def max-read-checkpoint-retries 5)
 
-(defn read-checkpointed-bytes [^Storage storage ^String bucket ^String key]
-  (let [b (.get storage bucket)
-        blob (.get b key (Storage$BlobGetOption/fields Storage$BlobField/NAME))]
-    (try (.getContent blob)
+(defn read-checkpointed-bytes [^Storage storage ^Bucket bucket ^String key]
+  (let [_ (infof "Reading checkpointed bytes from bucket: %s" bucket)
+        blob (get-blob bucket key)]
+    (try (.getContent ^com.google.cloud.storage.Blob blob (make-array com.google.cloud.storage.Blob$BlobSourceOption 0))
          (catch Exception ex
+           (error "Exception while trying to read checkpoint" ex)
            (throw (ex-info "Didn't read entire checkpoint."
                            {:message (.getMessage ex)
                             :exception ex}))))))
@@ -251,6 +294,6 @@
               (recur (dec n-retries)))
             (throw result))
           (do
-            (.addAndget ^AtomicLong (:checkpoint-read-bytes monitoring) (alength ^bytes result))
+            (.addAndGet ^AtomicLong (:checkpoint-read-bytes monitoring) (alength ^bytes result))
             result))))))
 
