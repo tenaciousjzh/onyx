@@ -1,4 +1,4 @@
-(defproject org.onyxplatform/onyx "0.11.1"
+(defproject org.onyxplatform/onyx "0.11.1-DEV"
   :description "Distributed, masterless, high performance, fault tolerant data processing for Clojure"
   :url "https://github.com/onyx-platform/onyx"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,12 @@
                  "releases" {:url "https://clojars.org/repo"
                              :username :env
                              :password :env
-                             :sign-releases false}}
+                             :sign-releases false}
+                 "centripetal-releases" {:id "nexus2"
+                                         :url "http://nexus2.centripetal.co:8081/repository/Releases"
+                                         :username "deployment"
+                                         :password "1qazmko0"
+                                         :sign-releases false}}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.3.443"]
                  [org.apache.curator/curator-framework "2.9.1" :exclusions [com.google.guava/guava]]
