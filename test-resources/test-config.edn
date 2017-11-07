@@ -6,15 +6,30 @@
  :peer-config
  {:zookeeper/address "127.0.0.1:2188"
   :onyx.peer/job-scheduler :onyx.job-scheduler/greedy
-  :onyx.peer/storage :zookeeper
+  :onyx.peer/storage :gcs
   :onyx.peer/state-store-impl :memory
-  :onyx.peer/storage.s3.bucket "onyx-s3-testing"
-  :onyx.peer/storage.s3.region "us-west-2"
+  ;:onyx.peer/storage.s3.bucket "onyx-s3-testing"
+  ;:onyx.peer/storage.s3.region "us-west-2"
   ;:onyx.peer/storage.s3.bucket "onyx-test-us-east-1"
   ;:onyx.peer/storage.s3.bucket "onyx-test-us-east-1"
   ; :onyx.peer/storage.s3.multipart-copy-part-size 1000
   ; :onyx.peer/storage.s3.multipart-upload-threshold 1000
   ; :onyx.peer/storage.s3.accelerate? false
+
+  :onyx.peer/storage.gcs.auth-type :path
+  :onyx.peer/storage.gcs.project-id "elite-elevator-175119"
+  ;; Google Cloud Storage config map authentication
+  :onyx.peer/storage.gcs.auth.config.client-id "111097560403467426039"
+  :onyx.peer/storage.gcs.auth.config.client-email "cni-centrifuge@elite-elevator-175119.iam.gserviceaccount.com"
+  :onyx.peer/storage.gcs.auth.config.private-key "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDZoFWnHfx+nxfH\nEoYbJf3KedOEOjWYsd+ryz1qVQA0waIxQ6XKO+ahD4WtW6CeMRHb92FI+8uTiNRd\nSmxt7JMtM5aD2ng27zjA/4QurnUMsG4hgJ/RNjAOJpuS2s9A8ZvkQoRwtcqEv+Ei\nKApGjmIr7GuxkWa+y4JMCe+Ez1l1kpZ2AkxGVTIbbaGbPt4cgWJhXxRlGEH36oeK\nRA3U+IIh+Cy8n3/p2qg7PIBd2+mKGacyQEmDHFPoeS2xexoJYgBRrbpj19v2Zm3T\n86TZH5bqhXRBRoMphAHa80dLVmWwG2pud25DAz8+df/YFyzfWLVVaM9nsRWfVnCx\nqq3Ggyt/AgMBAAECggEAGlq81Kqgd7MLfZukKuh8Zgc/0qz77Zxo0lSgAN7/UeQ7\nII0pKCb95HZNQXOtrUqS95jrKpv3iMvSr+OB4wP5xMkRCrGryjdJH7IxzzdoTFuX\nUq5RbFQMGMKbJ3shCyPXNZrKkB2rw0y7VlgT+nxmrhwI5K2PjD537n5rh6FWm5Km\nKXoFkR8gBkJ+ViduWk3pjkisLWq0NLTylHY2IhAfzzu6RgHmnpOMuqRoUW9Zr31e\nohnXMZFFIizFBWcEdTVQwqxCEPQWEUOegwhxVwi3RTRFtFDSZH3ziD+S1C6gOi54\nfpOF7Qq1Suoo2jWzkfI4raC1kt7PxIjK6f7iNpZHOQKBgQD6pDolBebufztzTzJh\nM2hsRxubnSH7q8oc0wxUjc/Ni2cWrfRQhoYLzZc6Kc1FvUEuRMQePD7kUaDU0GWB\nbbBmoomt3tz5mb8GV6WgmOGd5+QRMXlsLiOzFdCexeU13DLO93PYpzha/t3ZSN4D\nWfsA7CQN5dyY1P8CY5eqHk/K6QKBgQDeR2nmWRFxUhZTHNE7vuoIh9R2wyCfcJZN\nrAw1EVj/L1BhXhfyx5fKXu601Jss7Pyo4JE9Jk2+su1W7BUZxSqLmtGkpfDV9t0u\nqWJPS5xLr2BQOKsulU6ZLaQ6cHYHNR82CMdIHIGDs7/2SuMcNej3VMok6uyDhU/J\nsXIMyVPyJwKBgQCwP63XfQgALB4dHtLZgTHr+jDSw7My64GLtWkVSEeZTW7nhtmn\nioFWaXLvZpe/c68THy4d6NV87l2/aPAIDJ8f/Sn9xxrytgebKSUCAp+cz4UUBgtR\nZDycYTm7fIOK1VYxLdcbwbMiYdiVQ+VCzBJyept73mi6XAUao/fxm7EWiQKBgQDG\nO2wfaUmcBXgxcR7MqKuxJen+bHDYoKD67jgIz8rN8hU+cJrtAsHFUjqSfJVTUJrX\nxUbiARoOuyXdgjgjPmp+DHlw3CjXuQxyw88QJr9h5CsCADfyGGf7RfATyh4IuYB3\nQQbwsbNzkEffT9QRYaa9hRmuKPD7LlYE60JqUtaRuwKBgQD1+Bxp3IyBC2H7BZ7j\n135g2pvuZ5KAWcNjikwXRY7sOQVWW3GBP8+iJ6v4kqQL1x6E7eAZRXbEL8y3aKcM\nY2dc3BotENexyYDSqnhA0ZsXRITgSrbbzh7o1D19Do6ts9A8mtlywpavhuL8xTNd\nkCE6QDsMORHBF47il9QqABiAdg==\n-----END PRIVATE KEY-----\n"
+  :onyx.peer/storage.gcs.auth.config.private-key-id "dcd23c80c4272b23ab008bf01c64aa0778d4a8dd"
+  :onyx.peer/storage.gcs.bucket "cni_centrifuge"
+  :onyx.peer/storage.gcs.storage-class "REGIONAL"
+  :onyx.peer/storage.gcs.location "US-EAST4"
+
+  ;; Google Cloud Storage key file path authentication
+  :onyx.peer/storage.gcs.auth.path.credentials-path "/Users/jaredholmberg/Documents/security/GCP/cni-centrifuge-key.json"
+
   ;; Increase timeouts for circle ci
   ; :onyx.peer/coordinator-barrier-period-ms 40000
   :onyx.peer/coordinator-barrier-period-ms 1000

@@ -47,6 +47,7 @@
             [onyx.plugin.protocols]
             [onyx.plugin.core-async]
             [onyx.storage.s3]
+            [onyx.storage.gcs]
             [onyx.extensions :as extensions]
             [onyx.checkpoint :as checkpoint]
             [onyx.interop]))

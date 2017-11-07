@@ -690,7 +690,7 @@
    :onyx/tenancy-id TenancyId
    s/Keyword s/Any})
 
-(s/defschema Storage (s/enum :s3 :zookeeper))
+(s/defschema Storage (s/enum :s3 :zookeeper :gcs))
 
 (s/defschema LifecycleState
   (s/enum :lifecycle/poll-recover :lifecycle/offer-barriers
@@ -733,6 +733,40 @@
    (s/optional-key :onyx.peer/storage.s3.encryption) (s/enum :aes256 :none)
    (s/optional-key :onyx.peer/storage.s3.multipart-copy-part-size) s/Int
    (s/optional-key :onyx.peer/storage.s3.multipart-copy-threshold) s/Int
+   (s/optional-key :onyx.peer/storage.gcs.auth-type) (s/enum :path :config)
+   (s/optional-key :onyx.peer/storage.gcs.auth.path.credentials-path) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.auth.config.client-id) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.auth.config.client-email) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.auth.config.private-key) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.auth.config.private-key-id) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.auth.config.scopes) [s/Str]
+   (s/optional-key :onyx.peer/storage.gcs.bucket) s/Str
+   (s/optional-key :onyx.peer/storage.gcs.storage-class) (s/enum
+                                                          ;; Recommended for GKE
+                                                          "REGIONAL"
+                                                          "MULTI_REGIONAL"
+                                                          "NEARLINE"
+                                                          "COLDLINE"
+                                                          "STANDARD")
+   (s/optional-key :onyx.peer/storage.gcs.location) (s/enum
+                                                     ;REGIONAL
+                                                     "US-CENTRAL1"
+                                                     "US-EAST1"
+                                                     "US-EAST4"
+                                                     "US-WEST1"
+                                                     "SOUTHAMERICA-EAST1"
+                                                     "EUROPE-WEST1"
+                                                     "EUROPE-WEST2"
+                                                     "EUROPE-WEST3"
+                                                     "ASIA-EAST1"
+                                                     "ASIA-NORTHEAST1"
+                                                     "ASIA-SOUTHEAST1"
+                                                     "AUSTRALIA-SOUTHEAST1"
+                                                     ;;MULTI_REGIONAL
+                                                     "ASIA"
+                                                     "US"
+                                                     "EU")
+   (s/optional-key :onyx.peer/storage.gcs.project-id) s/Str
    (s/optional-key :onyx.peer/publisher-liveness-timeout-ms) PosInt
    (s/optional-key :onyx.peer/coordinator-max-sleep-ms) PosInt
    (s/optional-key :onyx.peer/coordinator-barrier-period-ms) PosInt

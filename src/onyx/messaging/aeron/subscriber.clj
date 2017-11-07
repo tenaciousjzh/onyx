@@ -16,7 +16,7 @@
             [onyx.messaging.serializers.local-segment-decoder :as lsdec]
             [onyx.messaging.serializers.base-decoder :as bdec]
             [onyx.types :as t]
-            [taoensso.timbre :refer [debug info warn] :as timbre])
+            [taoensso.timbre :refer [debug info infof warn] :as timbre])
   (:import [java.util.concurrent.atomic AtomicLong]
            [org.agrona.concurrent UnsafeBuffer]
            [org.agrona ErrorHandler]
@@ -111,11 +111,14 @@
           ctx (cond-> (.errorHandler (Aeron$Context.)
                                      (new-error-handler error error-counter))
                 media-driver-dir (.aeronDirectoryName ^String media-driver-dir))
+          _ (info "Creating Aeron subscriber connection.")
           conn (Aeron/connect ctx)
           channel (autil/channel peer-config)
           stream-id (stream-id dst-task-id slot-id site)
           available-image-handler (available-image sinfo error)
           unavailable-image-handler (unavailable-image sinfo)
+          _ (info "Adding subscription => conn: %s, channel: %s, stream-id: %s, available-handler: %s, unavailable-handler: %s"
+                  conn channel stream-id available-image-handler unavailable-image-handler)
           sub (.addSubscription conn channel stream-id available-image-handler unavailable-image-handler)
           sources []
           short-id-status-pub (int2objectmap)
